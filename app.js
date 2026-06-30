@@ -9,25 +9,24 @@ let filteredLogs = [];
 
 // Pre-defined values
 const DEFAULT_ACTIVITIES = [
-  'Sorting Cardboard',
-  'Sorting Plastics (PET/HDPE)',
-  'Baling Material',
-  'Loading Container',
-  'Unloading Truck',
-  'Yard Cleaning',
-  'Machine Maintenance',
-  'Other Activity'
+  'Loading',
+  'Unloading',
+  'Sorting',
+  'Disassembling (packages, lids, etc.)',
+  'Warehouse Cleaning',
+  'Animal Feed Production',
+  'Filling IBC Tanks',
+  'Working in Machines',
+  'Others'
 ];
 
 const DEFAULT_MACHINES = [
-  'Baler 1 (Main)',
-  'Baler 2 (Small)',
-  'Shredder',
-  'Forklift 1',
-  'Forklift 2',
-  'Bobcat / Loader',
-  'Sorting Belt',
-  'Other Machine'
+  'Depackaging Machine',
+  'Biodigester Machine',
+  'Glass Crusher',
+  'Shredder Machines',
+  'Liquid Drainer',
+  'Aerosol Processor'
 ];
 
 // Injected CSS for Custom Charts
@@ -103,11 +102,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Set default values for New Entry Date
   document.getElementById('form-date').value = new Date().toISOString().split('T')[0];
   
-  // Load last entered supervisor name if available in localStorage
+  // Load last entered supervisor name or default to Zahir
   const lastSupervisor = localStorage.getItem('lastSupervisor');
-  if (lastSupervisor) {
-    document.getElementById('form-supervisor').value = lastSupervisor;
-  }
+  document.getElementById('form-supervisor').value = lastSupervisor || 'Zahir';
 });
 
 // Toast Notification Helper
@@ -585,7 +582,7 @@ function renderMachines() {
         </select>
       </td>
       <td>
-        <input type="text" placeholder="Operator Name" value="${escapeHTML(mach.operator)}" oninput="updateMachineField(${index}, 'operator', this.value)">
+        <input type="text" placeholder="e.g. Zahir, Adhil, John" value="${escapeHTML(mach.operator)}" oninput="updateMachineField(${index}, 'operator', this.value)">
       </td>
       <td>
         <input type="time" value="${mach.startTime}" oninput="updateMachineTime(${index}, 'startTime', this.value)">
@@ -624,8 +621,8 @@ function renderMachines() {
         </select>
       </div>
       <div class="form-control">
-        <label>Operator Name</label>
-        <input type="text" placeholder="Operator Name" value="${escapeHTML(mach.operator)}" oninput="updateMachineField(${index}, 'operator', this.value)">
+        <label>Operator(s) / Helper(s) (1-3 people)</label>
+        <input type="text" placeholder="e.g. Zahir, Adhil, John" value="${escapeHTML(mach.operator)}" oninput="updateMachineField(${index}, 'operator', this.value)">
       </div>
       
       <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 0.5rem;">
@@ -856,6 +853,10 @@ function resetForm() {
   renderActivities();
   renderMachines();
   renderPhotoPreviews();
+  
+  // Reset supervisor to last used or Zahir
+  const lastSupervisor = localStorage.getItem('lastSupervisor');
+  document.getElementById('form-supervisor').value = lastSupervisor || 'Zahir';
   
   document.getElementById('form-submit-btn').textContent = 'Save Work Log';
 }
