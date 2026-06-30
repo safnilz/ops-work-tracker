@@ -321,13 +321,15 @@ function renderDashboardList() {
     const card = document.createElement('div');
     card.className = 'log-card';
     
-    // Calculate total workers for this log card
+    // Calculate total workers and overtime for this log card
     let intLabor = 0;
     let extLabor = 0;
+    let totalOt = 0;
     if (log.activities) {
       log.activities.forEach(a => {
         intLabor += Number(a.internalCount) || 0;
         extLabor += Number(a.extraCount) || 0;
+        totalOt += (Number(a.internalOt) || 0) + (Number(a.extraOt) || 0);
       });
     }
     const totalLabor = intLabor + extLabor;
@@ -363,7 +365,7 @@ function renderDashboardList() {
       <div class="log-card-meta">
         <div class="meta-icon-text">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
-          <span>Labor: <strong>${totalLabor}</strong> (${intLabor} int / ${extLabor} ext)</span>
+          <span>Labor: <strong>${totalLabor}</strong> (${intLabor} int / ${extLabor} ext)${totalOt ? ` + <strong>${totalOt}h OT</strong>` : ''}</span>
         </div>
         <div class="meta-icon-text">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
@@ -412,7 +414,9 @@ function setupFormDynamicControls() {
     currentActivities.push({
       type: DEFAULT_ACTIVITIES[0],
       internalCount: 0,
+      internalOt: 0,
       extraCount: 0,
+      extraOt: 0,
       notes: ''
     });
     renderActivities();
@@ -463,7 +467,13 @@ function renderActivities() {
         <input type="number" min="0" value="${act.internalCount}" oninput="updateActivityField(${index}, 'internalCount', parseInt(this.value) || 0)">
       </td>
       <td>
+        <input type="number" min="0" step="0.5" value="${act.internalOt || 0}" oninput="updateActivityField(${index}, 'internalOt', parseFloat(this.value) || 0)">
+      </td>
+      <td>
         <input type="number" min="0" value="${act.extraCount}" oninput="updateActivityField(${index}, 'extraCount', parseInt(this.value) || 0)">
+      </td>
+      <td>
+        <input type="number" min="0" step="0.5" value="${act.extraOt || 0}" oninput="updateActivityField(${index}, 'extraOt', parseFloat(this.value) || 0)">
       </td>
       <td>
         <input type="text" placeholder="e.g. Sorted 12 tons carton" value="${escapeHTML(act.notes)}" oninput="updateActivityField(${index}, 'notes', this.value)">
@@ -495,8 +505,18 @@ function renderActivities() {
           <input type="number" min="0" value="${act.internalCount}" oninput="updateActivityField(${index}, 'internalCount', parseInt(this.value) || 0)">
         </div>
         <div class="form-control">
+          <label>Internal OT (hrs)</label>
+          <input type="number" min="0" step="0.5" value="${act.internalOt || 0}" oninput="updateActivityField(${index}, 'internalOt', parseFloat(this.value) || 0)">
+        </div>
+      </div>
+      <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+        <div class="form-control">
           <label>Extra Labor</label>
           <input type="number" min="0" value="${act.extraCount}" oninput="updateActivityField(${index}, 'extraCount', parseInt(this.value) || 0)">
+        </div>
+        <div class="form-control">
+          <label>Extra OT (hrs)</label>
+          <input type="number" min="0" step="0.5" value="${act.extraOt || 0}" oninput="updateActivityField(${index}, 'extraOt', parseFloat(this.value) || 0)">
         </div>
       </div>
       <div class="form-control">
@@ -512,7 +532,7 @@ function renderActivities() {
 
 window.updateActivityField = function(index, field, value) {
   currentActivities[index][field] = value;
-  if (field === 'internalCount' || field === 'extraCount') {
+  if (field === 'internalCount' || field === 'extraCount' || field === 'internalOt' || field === 'extraOt') {
     calculateLaborTotals();
   }
 };
@@ -524,15 +544,21 @@ window.removeActivity = function(index) {
 
 function calculateLaborTotals() {
   let totalInternal = 0;
+  let totalInternalOt = 0;
   let totalExtra = 0;
+  let totalExtraOt = 0;
   
   currentActivities.forEach(act => {
     totalInternal += act.internalCount || 0;
+    totalInternalOt += act.internalOt || 0;
     totalExtra += act.extraCount || 0;
+    totalExtraOt += act.extraOt || 0;
   });
   
   document.getElementById('total-internal-badge').textContent = totalInternal;
+  document.getElementById('total-internal-ot-badge').textContent = `(${totalInternalOt}h OT)`;
   document.getElementById('total-extra-badge').textContent = totalExtra;
+  document.getElementById('total-extra-ot-badge').textContent = `(${totalExtraOt}h OT)`;
 }
 
 // Render Machine Logs Form Section
@@ -904,12 +930,14 @@ async function openDetailsModal(id) {
     document.getElementById('modal-subtitle-date').textContent = `${formatDateString(log.date)} - ${log.shift} Shift`;
     document.getElementById('modal-detail-supervisor').textContent = log.supervisor;
     
-    // Total employees count
+    // Total employees count & Overtime
     let totalEmployees = 0;
+    let totalOtHours = 0;
     log.activities.forEach(a => {
       totalEmployees += (a.internalCount || 0) + (a.extraCount || 0);
+      totalOtHours += (Number(a.internalOt) || 0) + (Number(a.extraOt) || 0);
     });
-    document.getElementById('modal-detail-labor').textContent = `${totalEmployees} Worker${totalEmployees !== 1 ? 's' : ''}`;
+    document.getElementById('modal-detail-labor').textContent = `${totalEmployees} Worker${totalEmployees !== 1 ? 's' : ''}` + (totalOtHours ? ` (${totalOtHours}h OT)` : '');
     
     // Total machine hours
     let totalMachHours = 0;
@@ -927,10 +955,16 @@ async function openDetailsModal(id) {
       log.activities.forEach(act => {
         const item = document.createElement('div');
         item.className = 'detail-item-card';
+        
+        const intOtStr = act.internalOt ? ` (OT: ${act.internalOt}h)` : '';
+        const extOtStr = act.extraOt ? ` (OT: ${act.extraOt}h)` : '';
+        
         item.innerHTML = `
           <div class="detail-item-header">
             <span>${escapeHTML(act.type)}</span>
-            <span style="color: var(--primary);">Int: ${act.internalCount || 0} | Ext: ${act.extraCount || 0}</span>
+            <span style="color: var(--primary);">
+              Int: ${act.internalCount || 0}${intOtStr} | Ext: ${act.extraCount || 0}${extOtStr}
+            </span>
           </div>
           <div class="detail-item-content">
             ${escapeHTML(act.notes || 'No description provided')}
@@ -1143,7 +1177,9 @@ function renderAnalytics() {
       isSummary[isNum] = {
         isNumber: log.isNumber,
         internalSum: 0,
+        internalOtSum: 0,
         extraSum: 0,
+        extraOtSum: 0,
         activitiesSet: new Set(),
         machineHours: 0,
         remarks: []
@@ -1154,7 +1190,9 @@ function renderAnalytics() {
     if (log.activities) {
       log.activities.forEach(a => {
         isSummary[isNum].internalSum += Number(a.internalCount) || 0;
+        isSummary[isNum].internalOtSum += Number(a.internalOt) || 0;
         isSummary[isNum].extraSum += Number(a.extraCount) || 0;
+        isSummary[isNum].extraOtSum += Number(a.extraOt) || 0;
         isSummary[isNum].activitiesSet.add(a.type);
       });
     }
@@ -1182,8 +1220,8 @@ function renderAnalytics() {
 
     tr.innerHTML = `
       <td style="font-weight:600; color: var(--primary);">${escapeHTML(summary.isNumber)}</td>
-      <td>${summary.internalSum}</td>
-      <td>${summary.extraSum}</td>
+      <td>${summary.internalSum}${summary.internalOtSum ? ` <span style="font-size:0.75rem;color:var(--text-secondary);">(${summary.internalOtSum}h OT)</span>` : ''}</td>
+      <td>${summary.extraSum}${summary.extraOtSum ? ` <span style="font-size:0.75rem;color:var(--text-secondary);">(${summary.extraOtSum}h OT)</span>` : ''}</td>
       <td style="font-size:0.8rem; color: var(--text-secondary);">${escapeHTML(actList + actEllipsis)}</td>
       <td style="font-weight:600; color: var(--orange);">${summary.machineHours.toFixed(1)} hrs</td>
       <td class="log-card-activities" style="max-width:200px;" title="${escapeHTML(summary.remarks.join('\n'))}">${escapeHTML(remarksSnippet)}</td>
@@ -1373,7 +1411,9 @@ function exportToCSV() {
     'Supervisor',
     'Activity Type',
     'Internal Labor Count',
+    'Internal OT Hours',
     'Extra Labor Count',
+    'Extra OT Hours',
     'Task Description / Output',
     'General Remarks / Delays'
   ].map(h => `"${h.replace(/"/g, '""')}"`).join(','));
@@ -1390,7 +1430,9 @@ function exportToCSV() {
           log.supervisor,
           act.type,
           act.internalCount || 0,
+          act.internalOt || 0,
           act.extraCount || 0,
+          act.extraOt || 0,
           act.notes || '',
           log.remarks || ''
         ].map(val => `"${String(val).replace(/"/g, '""')}"`).join(','));
@@ -1404,6 +1446,8 @@ function exportToCSV() {
         log.isNumber,
         log.supervisor,
         'None',
+        0,
+        0,
         0,
         0,
         '',
