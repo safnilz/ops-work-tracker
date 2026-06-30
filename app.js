@@ -166,10 +166,7 @@ function setupNavigation() {
         }
       });
 
-      // Specific tab load events
-      if (targetTab === 'analytics-tab') {
-        renderAnalytics();
-      }
+
     });
   });
 
@@ -204,9 +201,7 @@ function triggerTabSwitch(tabId) {
     }
   });
   
-  if (tabId === 'analytics-tab') {
-    renderAnalytics();
-  }
+
 }
 
 // Load Logs and Refresh UI
@@ -1128,155 +1123,7 @@ function populateFormForEdit(log, photos) {
   triggerTabSwitch('new-entry-tab');
 }
 
-// Analytics Tab Rendering (Custom Charts + Report Summary)
-function renderAnalytics() {
-  // Aggregate data
-  const laborData = {};
-  const machineData = {};
-  
-  allLogs.forEach(log => {
-    // 1. Sum up labor count per activity
-    if (log.activities) {
-      log.activities.forEach(act => {
-        const totalLabor = (Number(act.internalCount) || 0) + (Number(act.extraCount) || 0);
-        if (!laborData[act.type]) {
-          laborData[act.type] = 0;
-        }
-        laborData[act.type] += totalLabor;
-      });
-    }
 
-    // 2. Sum up machine running hours
-    if (log.machines) {
-      log.machines.forEach(m => {
-        if (!machineData[m.name]) {
-          machineData[m.name] = 0;
-        }
-        machineData[m.name] += Number(m.netHours) || 0;
-      });
-    }
-  });
-
-  // Render Horizontal Charts
-  renderHorizontalBarChart(laborData, 'labor-chart-svg', ' workers');
-  renderHorizontalBarChart(machineData, 'machine-chart-svg', ' hrs');
-
-  // Render Performance Summary table
-  const tbody = document.getElementById('report-summary-body');
-  tbody.innerHTML = '';
-
-  if (allLogs.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No records logged yet</td></tr>';
-    return;
-  }
-
-  // Create dictionary grouped by IS Number
-  const isSummary = {};
-  allLogs.forEach(log => {
-    const isNum = log.isNumber.toUpperCase().trim();
-    if (!isSummary[isNum]) {
-      isSummary[isNum] = {
-        isNumber: log.isNumber,
-        internalSum: 0,
-        internalOtSum: 0,
-        extraSum: 0,
-        extraOtSum: 0,
-        activitiesSet: new Set(),
-        machineHours: 0,
-        remarks: []
-      };
-    }
-    
-    // Aggregates
-    if (log.activities) {
-      log.activities.forEach(a => {
-        isSummary[isNum].internalSum += Number(a.internalCount) || 0;
-        isSummary[isNum].internalOtSum += Number(a.internalOt) || 0;
-        isSummary[isNum].extraSum += Number(a.extraCount) || 0;
-        isSummary[isNum].extraOtSum += Number(a.extraOt) || 0;
-        isSummary[isNum].activitiesSet.add(a.type);
-      });
-    }
-
-    if (log.machines) {
-      log.machines.forEach(m => {
-        isSummary[isNum].machineHours += Number(m.netHours) || 0;
-      });
-    }
-
-    if (log.remarks) {
-      isSummary[isNum].remarks.push(log.remarks);
-    }
-  });
-
-  Object.values(isSummary).forEach(summary => {
-    const tr = document.createElement('tr');
-    
-    const actList = Array.from(summary.activitiesSet).slice(0, 3).join(', ');
-    const actEllipsis = summary.activitiesSet.size > 3 ? '...' : '';
-    
-    const remarksSnippet = summary.remarks.length > 0 
-      ? summary.remarks.slice(0, 2).join('; ')
-      : 'No delays logged';
-
-    tr.innerHTML = `
-      <td style="font-weight:600; color: var(--primary);">${escapeHTML(summary.isNumber)}</td>
-      <td>${summary.internalSum}${summary.internalOtSum ? ` <span style="font-size:0.75rem;color:var(--text-secondary);">(${summary.internalOtSum}h OT)</span>` : ''}</td>
-      <td>${summary.extraSum}${summary.extraOtSum ? ` <span style="font-size:0.75rem;color:var(--text-secondary);">(${summary.extraOtSum}h OT)</span>` : ''}</td>
-      <td style="font-size:0.8rem; color: var(--text-secondary);">${escapeHTML(actList + actEllipsis)}</td>
-      <td style="font-weight:600; color: var(--orange);">${summary.machineHours.toFixed(1)} hrs</td>
-      <td class="log-card-activities" style="max-width:200px;" title="${escapeHTML(summary.remarks.join('\n'))}">${escapeHTML(remarksSnippet)}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-// Chart Engine: Generates responsive horizontal bar layouts
-function renderHorizontalBarChart(data, containerId, valueSuffix) {
-  const container = document.getElementById(containerId);
-  if (!container) return;
-  container.innerHTML = '';
-  
-  const entries = Object.entries(data).sort((a, b) => b[1] - a[1]);
-  
-  if (entries.length === 0) {
-    container.innerHTML = `
-      <div class="empty-state" style="padding: 1.5rem 0;">
-        <p style="font-size:0.85rem; color: var(--text-muted);">No records registered for this metrics.</p>
-      </div>
-    `;
-    return;
-  }
-  
-  const maxValue = Math.max(...entries.map(e => e[1]), 1);
-  
-  const chartWrapper = document.createElement('div');
-  chartWrapper.className = 'custom-bar-chart';
-  
-  entries.slice(0, 6).forEach(([label, value]) => {
-    const pct = (value / maxValue) * 100;
-    
-    const row = document.createElement('div');
-    row.className = 'chart-row';
-    row.innerHTML = `
-      <div class="chart-row-label" title="${escapeHTML(label)}">${escapeHTML(label)}</div>
-      <div class="chart-row-bar-wrapper">
-        <div class="chart-row-bar" style="width: 0%"></div>
-        <span class="chart-row-value">${value % 1 === 0 ? value : value.toFixed(1)}${valueSuffix}</span>
-      </div>
-    `;
-    
-    chartWrapper.appendChild(row);
-    
-    // Animate bar width growth
-    setTimeout(() => {
-      const bar = row.querySelector('.chart-row-bar');
-      if (bar) bar.style.width = `${pct}%`;
-    }, 50);
-  });
-  
-  container.appendChild(chartWrapper);
-}
 
 // Setup Utility Actions: CSV Export, JSON Backup, JSON Restore
 function setupUtilityActions() {

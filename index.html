@@ -302,60 +302,7 @@
         </form>
       </section>
 
-      
-      <!-- TAB 3: ANALYTICS -->
-      <section id="analytics-tab" class="tab-content">
-        <div class="analytics-header">
-          <h3>Operations Dashboard &amp; Analytics</h3>
-          <p>Local offline reports summarizing labor and machine performance.</p>
-        </div>
 
-        <div class="charts-grid">
-          <!-- Chart 1: Labor Utilization -->
-          <div class="chart-card">
-            <h4>Total Labor Allocation by Activity</h4>
-            <span class="chart-subtitle">Sum of employee-shifts allocated across jobs</span>
-            <div class="chart-container">
-              <div id="labor-chart-svg" class="svg-chart-wrapper">
-                <!-- Custom SVG Chart generated via JS -->
-              </div>
-            </div>
-          </div>
-
-          <!-- Chart 2: Machine Run Time -->
-          <div class="chart-card">
-            <h4>Total Operating Hours by Machine</h4>
-            <span class="chart-subtitle">Aggregate run hours for each piece of equipment</span>
-            <div class="chart-container">
-              <div id="machine-chart-svg" class="svg-chart-wrapper">
-                <!-- Custom SVG Chart generated via JS -->
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Productivity Summary Table -->
-        <div class="form-card" style="margin-top: 1.5rem;">
-          <h4 style="margin-bottom: 0.75rem; color: var(--slate-100);">Operational Performance Summary</h4>
-          <div class="responsive-table-wrapper">
-            <table class="report-table">
-              <thead>
-                <tr>
-                  <th>IS Number</th>
-                  <th>Total Internal Labor</th>
-                  <th>Total Extra Labor</th>
-                  <th>Work Activities</th>
-                  <th>Machine Hours Logged</th>
-                  <th>Remarks Summary</th>
-                </tr>
-              </thead>
-              <tbody id="report-summary-body">
-                <!-- Injected via JS -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
 
     </main>
 
@@ -370,10 +317,6 @@
         <button class="nav-item" data-tab="new-entry-tab" id="desktop-new-entry-btn">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
           New Work Entry
-        </button>
-        <button class="nav-item" data-tab="analytics-tab">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-          Analytics
         </button>
       </nav>
       
@@ -391,10 +334,6 @@
       <button class="mobile-nav-item" data-tab="new-entry-tab" id="mobile-new-entry-btn">
         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
         <span>New Entry</span>
-      </button>
-      <button class="mobile-nav-item" data-tab="analytics-tab">
-        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-        <span>Analytics</span>
       </button>
     </nav>
 
