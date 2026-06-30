@@ -501,21 +501,21 @@ function renderActivities() {
       </div>
       <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 0.5rem;">
         <div class="form-control">
-          <label>Internal Labor</label>
+          <label>Internal Workers</label>
           <input type="number" min="0" value="${act.internalCount}" oninput="updateActivityField(${index}, 'internalCount', parseInt(this.value) || 0)">
         </div>
         <div class="form-control">
-          <label>Internal OT (hrs)</label>
+          <label>Internal Overtime (hours)</label>
           <input type="number" min="0" step="0.5" value="${act.internalOt || 0}" oninput="updateActivityField(${index}, 'internalOt', parseFloat(this.value) || 0)">
         </div>
       </div>
       <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 0.5rem;">
         <div class="form-control">
-          <label>Extra Labor</label>
+          <label>Extra Labor Workers</label>
           <input type="number" min="0" value="${act.extraCount}" oninput="updateActivityField(${index}, 'extraCount', parseInt(this.value) || 0)">
         </div>
         <div class="form-control">
-          <label>Extra OT (hrs)</label>
+          <label>Extra Overtime (hours)</label>
           <input type="number" min="0" step="0.5" value="${act.extraOt || 0}" oninput="updateActivityField(${index}, 'extraOt', parseFloat(this.value) || 0)">
         </div>
       </div>
@@ -556,9 +556,9 @@ function calculateLaborTotals() {
   });
   
   document.getElementById('total-internal-badge').textContent = totalInternal;
-  document.getElementById('total-internal-ot-badge').textContent = `(${totalInternalOt}h OT)`;
+  document.getElementById('total-internal-ot-badge').textContent = `(${totalInternalOt}h Overtime)`;
   document.getElementById('total-extra-badge').textContent = totalExtra;
-  document.getElementById('total-extra-ot-badge').textContent = `(${totalExtraOt}h OT)`;
+  document.getElementById('total-extra-ot-badge').textContent = `(${totalExtraOt}h Overtime)`;
 }
 
 // Render Machine Logs Form Section
