@@ -36,6 +36,49 @@
   --header-height: 72px;
   --sidebar-width: 260px;
   --transition-speed: 0.25s;
+
+  /* Theme-dependent transparency effects */
+  --hover-bg: rgba(255, 255, 255, 0.04);
+  --hover-icon: rgba(255, 255, 255, 0.05);
+  --hover-card-border: rgba(255, 255, 255, 0.12);
+  --card-divider: rgba(255, 255, 255, 0.04);
+  --dropzone-border: rgba(255, 255, 255, 0.15);
+  --dropzone-bg: rgba(255, 255, 255, 0.01);
+  --table-hover: rgba(255, 255, 255, 0.02);
+}
+
+body[data-theme="light"] {
+  --bg-app: #f8fafc;
+  --bg-panel: #ffffff;
+  --bg-card: #f1f5f9;
+  --bg-card-hover: #e2e8f0;
+  --border-color: #cbd5e1;
+  --border-focus: #10b981;
+  
+  --primary: #10b981;
+  --primary-hover: #059669;
+  --primary-light: rgba(16, 185, 129, 0.08);
+  --primary-glow: rgba(16, 185, 129, 0.2);
+  
+  --text-main: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  
+  --blue-light: rgba(59, 130, 246, 0.08);
+  --orange-light: rgba(245, 158, 11, 0.08);
+  --red-light: rgba(239, 68, 68, 0.08);
+  
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.08);
+
+  --hover-bg: rgba(15, 23, 42, 0.04);
+  --hover-icon: rgba(15, 23, 42, 0.05);
+  --hover-card-border: rgba(15, 23, 42, 0.12);
+  --card-divider: rgba(15, 23, 42, 0.04);
+  --dropzone-border: rgba(15, 23, 42, 0.15);
+  --dropzone-bg: rgba(15, 23, 42, 0.01);
+  --table-hover: rgba(15, 23, 42, 0.015);
 }
 
 /* Reset & Global Styles */
@@ -214,7 +257,7 @@ button, input, select, textarea {
 }
 
 .nav-item:hover {
-  background-color: rgba(255, 255, 255, 0.04);
+  background-color: var(--hover-bg);
   color: var(--text-main);
 }
 
@@ -322,7 +365,7 @@ button, input, select, textarea {
 }
 
 .icon-btn:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: var(--hover-icon);
 }
 
 /* Dropdown Menu System */
@@ -395,7 +438,7 @@ button, input, select, textarea {
 
 .kpi-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.15);
+  border-color: var(--hover-card-border);
 }
 
 .kpi-icon {
@@ -550,7 +593,7 @@ button, input, select, textarea {
 
 .log-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: var(--hover-card-border);
   box-shadow: var(--shadow-md);
 }
 
@@ -593,8 +636,8 @@ button, input, select, textarea {
   gap: 1.5rem;
   font-size: 0.85rem;
   color: var(--text-secondary);
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-top: 1px solid var(--card-divider);
+  border-bottom: 1px solid var(--card-divider);
   padding: 0.5rem 0;
 }
 
@@ -781,7 +824,7 @@ button, input, select, textarea {
 
 /* Photo Uploader / Dropzone */
 .dropzone {
-  border: 2px dashed rgba(255, 255, 255, 0.15);
+  border: 2px dashed var(--dropzone-border);
   border-radius: 12px;
   padding: 2rem 1.5rem;
   text-align: center;
@@ -791,7 +834,7 @@ button, input, select, textarea {
   align-items: center;
   gap: 0.75rem;
   transition: all 0.2s ease;
-  background-color: rgba(255, 255, 255, 0.01);
+  background-color: var(--dropzone-bg);
 }
 
 .dropzone:hover {
@@ -907,7 +950,7 @@ button, input, select, textarea {
 }
 
 .report-table tr:hover td {
-  background-color: rgba(255, 255, 255, 0.02);
+  background-color: var(--table-hover);
 }
 
 /* Mobile Stacked Items Layouts */
