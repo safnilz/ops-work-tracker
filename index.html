@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Ops Work Tracker</title>
+  
+  <!-- PWA Support -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="icon.png">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Font (Google Fonts loaded when online, fallback to sans-serif when offline) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- App Shell -->
+  <div class="app-container">
+    
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <img src="icon.png" alt="Ops Logo" class="app-logo">
+        <div class="brand-text">
+          <h1>Ops Work Tracker</h1>
+          <span class="sub-brand">Al Wakeel Recycling</span>
+        </div>
+      </div>
+      
+      <!-- Utility Bar -->
+      <div class="header-utils">
+        <div id="connection-badge" class="connection-badge online">
+          <span class="badge-dot"></span>
+          <span class="badge-text">Online</span>
+        </div>
+        
+        <div class="dropdown">
+          <button id="actions-btn" class="icon-btn btn-secondary" title="Database Actions">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          </button>
+          <div id="actions-dropdown" class="dropdown-content">
+            <button id="export-csv-btn">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+              Export to Excel (CSV)
+            </button>
+            <button id="backup-btn">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              Backup DB (JSON)
+            </button>
+            <button id="restore-trigger">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              Restore DB (JSON)
+            </button>
+            <input type="file" id="restore-input" style="display: none;" accept=".json">
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="app-main">
+      
+      <!-- TAB 1: DASHBOARD -->
+      <section id="dashboard-tab" class="tab-content active">
+        <!-- KPI Cards Grid -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-icon icon-blue">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            </div>
+            <div class="kpi-info">
+              <span class="kpi-label">Work Days Logged</span>
+              <h2 id="kpi-days">0</h2>
+            </div>
+          </div>
+          
+          <div class="kpi-card">
+            <div class="kpi-icon icon-emerald">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            </div>
+            <div class="kpi-info">
+              <span class="kpi-label">Avg. Daily Employees</span>
+              <h2 id="kpi-labor">0</h2>
+            </div>
+          </div>
+          
+          <div class="kpi-card">
+            <div class="kpi-icon icon-orange">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            </div>
+            <div class="kpi-info">
+              <span class="kpi-label">Machine Hours Run</span>
+              <h2 id="kpi-machine">0 hrs</h2>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-icon icon-red">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+            </div>
+            <div class="kpi-info">
+              <span class="kpi-label">Active IS Jobs</span>
+              <h2 id="kpi-isnumbers">0</h2>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter Panel -->
+        <div class="filter-panel">
+          <div class="filter-group search-box">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="search-is" placeholder="Search IS Number...">
+          </div>
+          
+          <div class="filter-group">
+            <label for="filter-shift">Shift</label>
+            <select id="filter-shift">
+              <option value="all">All Shifts</option>
+              <option value="Day">Day</option>
+              <option value="Night">Night</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label for="filter-date">Date</label>
+            <input type="date" id="filter-date">
+          </div>
+          
+          <button id="clear-filters-btn" class="btn btn-secondary">Clear</button>
+        </div>
+
+        <!-- Logs Container -->
+        <div class="logs-section">
+          <div class="section-header">
+            <h3>Daily Work Logs</h3>
+            <button id="new-log-shortcut-btn" class="btn btn-primary btn-sm mobile-hide">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              New Entry
+            </button>
+          </div>
+          
+          <!-- Empty State -->
+          <div id="empty-state" class="empty-state">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            <p>No work logs found. Click "New Work Entry" to add one.</p>
+          </div>
+          
+          <!-- List of logs (cards) -->
+          <div id="logs-list" class="logs-list"></div>
+        </div>
+      </section>
+
+      
+      <!-- TAB 2: NEW WORK ENTRY -->
+      <section id="new-entry-tab" class="tab-content">
+        <form id="work-log-form" class="work-form">
+          <input type="hidden" id="edit-log-id">
+          
+          <div class="form-card">
+            <h3 class="card-title">General Information</h3>
+            <div class="form-grid">
+              <div class="form-control">
+                <label for="form-date">Date of Work <span class="required">*</span></label>
+                <input type="date" id="form-date" required>
+              </div>
+              
+              <div class="form-control">
+                <label for="form-shift">Shift <span class="required">*</span></label>
+                <select id="form-shift" required>
+                  <option value="Day">Day Shift</option>
+                  <option value="Night">Night Shift</option>
+                </select>
+              </div>
+
+              <div class="form-control">
+                <label for="form-is-number">IS Number <span class="required">*</span></label>
+                <input type="text" id="form-is-number" placeholder="e.g. IS-5402" required>
+              </div>
+
+              <div class="form-control">
+                <label for="form-supervisor">Supervisor <span class="required">*</span></label>
+                <input type="text" id="form-supervisor" placeholder="Supervisor Name" required>
+              </div>
+            </div>
+          </div>
+
+          <!-- Labor Task Allocation Card -->
+          <div class="form-card">
+            <div class="card-header-action">
+              <h3 class="card-title">Labor &amp; Task Allocation</h3>
+              <button type="button" id="add-activity-btn" class="btn btn-secondary btn-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Add Activity
+              </button>
+            </div>
+            <p class="card-subtitle">Specify what activities the labor force performed and how many workers were assigned.</p>
+            
+            <div class="responsive-table-wrapper">
+              <table id="activities-table" class="input-table">
+                <thead>
+                  <tr>
+                    <th>Activity Type</th>
+                    <th style="width: 100px;">Internal Labor</th>
+                    <th style="width: 100px;">Extra Labor</th>
+                    <th>Task Description / Output</th>
+                    <th style="width: 50px;"></th>
+                  </tr>
+                </thead>
+                <tbody id="activities-list">
+                  <!-- Injected via JavaScript -->
+                </tbody>
+              </table>
+            </div>
+            
+            <!-- Mobile-only card container for activity items -->
+            <div id="activities-mobile-cards" class="mobile-cards-container"></div>
+            
+            <div class="totals-bar">
+              <span>Total Internal: <strong id="total-internal-badge">0</strong></span>
+              <span>Total Extra Labor: <strong id="total-extra-badge">0</strong></span>
+            </div>
+          </div>
+
+          <!-- Machine Utilization Card -->
+          <div class="form-card">
+            <div class="card-header-action">
+              <h3 class="card-title">Machine Logs</h3>
+              <button type="button" id="add-machine-btn" class="btn btn-secondary btn-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Add Machine
+              </button>
+            </div>
+            <p class="card-subtitle">Track run times and outputs for machinery operated during the shift.</p>
+            
+            <div class="responsive-table-wrapper">
+              <table id="machines-table" class="input-table">
+                <thead>
+                  <tr>
+                    <th>Machine Name</th>
+                    <th>Operator</th>
+                    <th style="width: 120px;">Start Time</th>
+                    <th style="width: 120px;">End Time</th>
+                    <th style="width: 100px;">Break (min)</th>
+                    <th style="width: 90px;">Net Hours</th>
+                    <th>Material / Output</th>
+                    <th style="width: 50px;"></th>
+                  </tr>
+                </thead>
+                <tbody id="machines-list">
+                  <!-- Injected via JavaScript -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Mobile-only card container for machine items -->
+            <div id="machines-mobile-cards" class="mobile-cards-container"></div>
+          </div>
+
+          <!-- Photos Card -->
+          <div class="form-card">
+            <h3 class="card-title">Pictures of Work</h3>
+            <p class="card-subtitle">Attach photos of the activities, materials sorted, or machine operations.</p>
+            
+            <div id="dropzone" class="dropzone">
+              <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+              <span>Tap to Take Photo or Upload Pictures</span>
+              <p>Supports PNG, JPG, JPEG (Compressed on-the-fly)</p>
+              <input type="file" id="photo-input" accept="image/*" multiple style="display: none;">
+            </div>
+
+            <!-- Image Previews -->
+            <div id="photo-previews" class="photo-previews-grid">
+              <!-- Injected via JS -->
+            </div>
+          </div>
+
+          <!-- General Remarks -->
+          <div class="form-card">
+            <h3 class="card-title">Remarks / Delays</h3>
+            <div class="form-control">
+              <label for="form-remarks">General Notes, Machine Breakdown, or Delays</label>
+              <textarea id="form-remarks" rows="3" placeholder="Provide details on any issues faced, visitors, breakdowns, or special achievements..."></textarea>
+            </div>
+          </div>
+
+          <!-- Form Actions -->
+          <div class="form-actions">
+            <button type="button" id="form-cancel-btn" class="btn btn-secondary">Cancel</button>
+            <button type="submit" id="form-submit-btn" class="btn btn-primary">Save Work Log</button>
+          </div>
+
+        </form>
+      </section>
+
+      
+      <!-- TAB 3: ANALYTICS -->
+      <section id="analytics-tab" class="tab-content">
+        <div class="analytics-header">
+          <h3>Operations Dashboard &amp; Analytics</h3>
+          <p>Local offline reports summarizing labor and machine performance.</p>
+        </div>
+
+        <div class="charts-grid">
+          <!-- Chart 1: Labor Utilization -->
+          <div class="chart-card">
+            <h4>Total Labor Allocation by Activity</h4>
+            <span class="chart-subtitle">Sum of employee-shifts allocated across jobs</span>
+            <div class="chart-container">
+              <div id="labor-chart-svg" class="svg-chart-wrapper">
+                <!-- Custom SVG Chart generated via JS -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Chart 2: Machine Run Time -->
+          <div class="chart-card">
+            <h4>Total Operating Hours by Machine</h4>
+            <span class="chart-subtitle">Aggregate run hours for each piece of equipment</span>
+            <div class="chart-container">
+              <div id="machine-chart-svg" class="svg-chart-wrapper">
+                <!-- Custom SVG Chart generated via JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Productivity Summary Table -->
+        <div class="form-card" style="margin-top: 1.5rem;">
+          <h4 style="margin-bottom: 0.75rem; color: var(--slate-100);">Operational Performance Summary</h4>
+          <div class="responsive-table-wrapper">
+            <table class="report-table">
+              <thead>
+                <tr>
+                  <th>IS Number</th>
+                  <th>Total Internal Labor</th>
+                  <th>Total Extra Labor</th>
+                  <th>Work Activities</th>
+                  <th>Machine Hours Logged</th>
+                  <th>Remarks Summary</th>
+                </tr>
+              </thead>
+              <tbody id="report-summary-body">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Navigation Bar -->
+    <!-- Desktop Sidebar Menu (hidden on mobile) -->
+    <aside class="app-sidebar">
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-tab="dashboard-tab">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></nav>
+          Dashboard
+        </button>
+        <button class="nav-item" data-tab="new-entry-tab" id="desktop-new-entry-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+          New Work Entry
+        </button>
+        <button class="nav-item" data-tab="analytics-tab">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+          Analytics
+        </button>
+      </nav>
+      
+      <div class="sidebar-footer">
+        <span class="version-label">v1.2.0 (Offline Native)</span>
+      </div>
+    </aside>
+
+    <!-- Bottom Navigation Bar (visible on mobile, hidden on desktop) -->
+    <nav class="mobile-nav">
+      <button class="mobile-nav-item active" data-tab="dashboard-tab">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+        <span>Dashboard</span>
+      </button>
+      <button class="mobile-nav-item" data-tab="new-entry-tab" id="mobile-new-entry-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+        <span>New Entry</span>
+      </button>
+      <button class="mobile-nav-item" data-tab="analytics-tab">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+        <span>Analytics</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <!-- DETAILS MODAL (Slide-over for Mobile / Center Dialog for Desktop) -->
+  <div id="details-modal" class="modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-container">
+      <header class="modal-header">
+        <div>
+          <h2 id="modal-title-is">IS-XXXX</h2>
+          <span id="modal-subtitle-date" class="modal-subtitle">June 30, 2026 - Day Shift</span>
+        </div>
+        <button id="close-modal-btn" class="icon-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </header>
+      
+      <div class="modal-body">
+        
+        <!-- Quick Meta Details -->
+        <div class="meta-row">
+          <div class="meta-item">
+            <span class="meta-label">Supervisor</span>
+            <strong id="modal-detail-supervisor">-</strong>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Total Labor</span>
+            <strong id="modal-detail-labor">0 Workers</strong>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Machine Hours</span>
+            <strong id="modal-detail-machine">0 hrs</strong>
+          </div>
+        </div>
+
+        <hr class="modal-divider">
+
+        <!-- Labor Allocations -->
+        <div class="detail-section">
+          <h3>Labor &amp; Task Activities</h3>
+          <div class="detail-cards-container" id="modal-detail-activities">
+            <!-- Injected dynamically -->
+          </div>
+        </div>
+
+        <!-- Machine Running Times -->
+        <div class="detail-section">
+          <h3>Machine Operation Logs</h3>
+          <div class="detail-cards-container" id="modal-detail-machines">
+            <!-- Injected dynamically -->
+          </div>
+        </div>
+
+        <!-- Attached Images -->
+        <div class="detail-section">
+          <h3>Attached Photos</h3>
+          <div class="detail-gallery" id="modal-detail-gallery">
+            <!-- Injected dynamically -->
+          </div>
+        </div>
+
+        <!-- Remarks -->
+        <div class="detail-section" id="modal-detail-remarks-section">
+          <h3>Remarks &amp; Delay Reasons</h3>
+          <p id="modal-detail-remarks" class="remarks-box">-</p>
+        </div>
+
+      </div>
+
+      <footer class="modal-footer">
+        <button id="modal-delete-btn" class="btn btn-danger">Delete Log</button>
+        <button id="modal-edit-btn" class="btn btn-secondary">Edit Log</button>
+        <button id="modal-close-bottom-btn" class="btn btn-secondary">Close</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- IMAGE LIGHTBOX FOR FULL VIEWING -->
+  <div id="lightbox" class="lightbox">
+    <span class="lightbox-close">&times;</span>
+    <img class="lightbox-content" id="lightbox-img">
+    <div id="lightbox-caption"></div>
+  </div>
+
+  <!-- NOTIFICATION TOAST -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => console.log('Service Worker registered successfully!', reg.scope))
+          .catch(err => console.error('Service Worker registration failed:', err));
+      });
+    }
+  </script>
+
+  <!-- Database & App Logic Scripts -->
+  <script src="db.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+# Ignore local database backups and spreadsheet reports
+*Backup*.json
+*backup*.json
+*Database_Backup*.json
+*Export*.csv
+*.csv
+
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
