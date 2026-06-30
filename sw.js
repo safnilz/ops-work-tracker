@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ops-tracker-cache-v4';
+const CACHE_NAME = 'ops-tracker-cache-v5';
 const ASSETS = [
   './',
   './index.html',

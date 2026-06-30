@@ -219,7 +219,8 @@ async function loadLogsAndRefresh() {
 function setupFilterControls() {
   const searchInput = document.getElementById('search-is');
   const shiftSelect = document.getElementById('filter-shift');
-  const dateInput = document.getElementById('filter-date');
+  const startDateInput = document.getElementById('filter-start-date');
+  const endDateInput = document.getElementById('filter-end-date');
   const clearBtn = document.getElementById('clear-filters-btn');
 
   const onFilterChange = () => {
@@ -228,12 +229,14 @@ function setupFilterControls() {
 
   searchInput.addEventListener('input', onFilterChange);
   shiftSelect.addEventListener('change', onFilterChange);
-  dateInput.addEventListener('change', onFilterChange);
+  startDateInput.addEventListener('change', onFilterChange);
+  endDateInput.addEventListener('change', onFilterChange);
   
   clearBtn.addEventListener('click', () => {
     searchInput.value = '';
     shiftSelect.value = 'all';
-    dateInput.value = '';
+    startDateInput.value = '';
+    endDateInput.value = '';
     applyFilters();
   });
 }
@@ -241,7 +244,8 @@ function setupFilterControls() {
 function applyFilters() {
   const searchVal = document.getElementById('search-is').value.toLowerCase().trim();
   const shiftVal = document.getElementById('filter-shift').value;
-  const dateVal = document.getElementById('filter-date').value;
+  const startVal = document.getElementById('filter-start-date').value;
+  const endVal = document.getElementById('filter-end-date').value;
 
   filteredLogs = allLogs.filter(log => {
     // Search by IS Number
@@ -252,10 +256,12 @@ function applyFilters() {
     // Filter by Shift
     const matchesShift = shiftVal === 'all' || log.shift === shiftVal;
     
-    // Filter by Date
-    const matchesDate = !dateVal || log.date === dateVal;
+    // Filter by Date Range
+    const logDate = log.date;
+    const matchesStart = !startVal || logDate >= startVal;
+    const matchesEnd = !endVal || logDate <= endVal;
 
-    return matchesSearch && matchesShift && matchesDate;
+    return matchesSearch && matchesShift && matchesStart && matchesEnd;
   });
 
   renderDashboardList();
@@ -1243,8 +1249,9 @@ function setupUtilityActions() {
 
 // Convert Log Data to Excel-compatible CSV File
 function exportToCSV() {
-  if (allLogs.length === 0) {
-    showToast('No logs available to export.', 'error');
+  const logsToExport = filteredLogs;
+  if (logsToExport.length === 0) {
+    showToast('No logs match the current filters to export.', 'error');
     return;
   }
 
@@ -1267,7 +1274,7 @@ function exportToCSV() {
   ].map(h => `"${h.replace(/"/g, '""')}"`).join(','));
 
   // Flatten logs into activity-level rows
-  allLogs.forEach(log => {
+  logsToExport.forEach(log => {
     if (log.activities && log.activities.length > 0) {
       log.activities.forEach(act => {
         csvRows.push([
@@ -1309,7 +1316,22 @@ function exportToCSV() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `Ops_Work_Tracker_Export_${new Date().toISOString().split('T')[0]}.csv`;
+  
+  // Dynamic filename based on date filters
+  const startVal = document.getElementById('filter-start-date').value;
+  const endVal = document.getElementById('filter-end-date').value;
+  let filename = 'Ops_Work_Tracker_Export';
+  if (startVal && endVal) {
+    filename += `_from_${startVal}_to_${endVal}`;
+  } else if (startVal) {
+    filename += `_since_${startVal}`;
+  } else if (endVal) {
+    filename += `_until_${endVal}`;
+  } else {
+    filename += `_All_${new Date().toISOString().split('T')[0]}`;
+  }
+  
+  link.download = `${filename}.csv`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
