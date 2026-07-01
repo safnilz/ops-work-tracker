@@ -1,7 +1,7 @@
-// db.js - IndexedDB Database Service for Ops Work Tracker
+// db.js - Offline-First Database Service with AWS RDS Sync for Ops Work Tracker
 
-const DB_NAME = 'OpsTrackerDB';
-const DB_VERSION = 1;
+const DB_NAME = 'ReclaimOpsDB_Local';
+const DB_VERSION = 2; // Bumped version to support alphanumeric IDs and synced flag
 
 let dbInstance = null;
 
@@ -26,20 +26,58 @@ function initDB() {
     request.onupgradeneeded = (event) => {
       const db = event.target.result;
       
-      // Create logs store
-      if (!db.objectStoreNames.contains('logs')) {
-        const logStore = db.createObjectStore('logs', { keyPath: 'id', autoIncrement: true });
-        logStore.createIndex('date', 'date', { unique: false });
-        logStore.createIndex('isNumber', 'isNumber', { unique: false });
+      // If store exists from old version, delete it to clean autoIncrement configuration
+      if (db.objectStoreNames.contains('logs')) {
+        db.deleteObjectStore('logs');
+      }
+      if (db.objectStoreNames.contains('photos')) {
+        db.deleteObjectStore('photos');
       }
       
-      // Create photos store
-      if (!db.objectStoreNames.contains('photos')) {
-        const photoStore = db.createObjectStore('photos', { keyPath: 'id', autoIncrement: true });
-        photoStore.createIndex('logId', 'logId', { unique: false });
-      }
+      // Create new logs store with string-based keyPath
+      const logStore = db.createObjectStore('logs', { keyPath: 'id' });
+      logStore.createIndex('date', 'date', { unique: false });
+      logStore.createIndex('isNumber', 'isNumber', { unique: false });
+      logStore.createIndex('synced', 'synced', { unique: false });
+      
+      // Create new photos store
+      const photoStore = db.createObjectStore('photos', { keyPath: 'id', autoIncrement: true });
+      photoStore.createIndex('logId', 'logId', { unique: false });
     };
   });
+}
+
+// Helpers for Base64 and Blob conversion
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    if (!(blob instanceof Blob)) {
+      resolve('');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result.split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+function base64ToBlob(base64, mimeType = 'image/jpeg') {
+  if (!base64) return null;
+  try {
+    const byteCharacters = atob(base64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    return new Blob([byteArray], { type: mimeType });
+  } catch (err) {
+    console.error('Failed to convert base64 to blob:', err);
+    return null;
+  }
 }
 
 const dbService = {
@@ -47,93 +85,235 @@ const dbService = {
     return initDB();
   },
 
+  // Save log locally to IndexedDB, then attempt to upload to RDS
   async saveLog(log, photos) {
     const db = await this.init();
-    return new Promise((resolve, reject) => {
+    
+    // Ensure log has a unique string ID (UUID-like) to prevent client collisions
+    if (!log.id) {
+      log.id = `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    }
+    
+    // Always mark as unsynced (0) initially before attempt
+    log.synced = 0;
+
+    // 1. Save to local IndexedDB
+    await new Promise((resolve, reject) => {
       const transaction = db.transaction(['logs', 'photos'], 'readwrite');
-      let logId = log.id;
-      
-      transaction.onerror = (e) => {
-        console.error('Transaction error during saveLog:', e.target.error);
-        reject(e.target.error);
-      };
-      
-      transaction.oncomplete = () => {
-        resolve(logId);
-      };
+      transaction.onerror = (e) => reject(e.target.error);
+      transaction.oncomplete = () => resolve();
       
       const logStore = transaction.objectStore('logs');
       const photoStore = transaction.objectStore('photos');
       
-      if (logId) {
-        // Edit existing log
-        logStore.put(log);
-        
-        // Delete all old photos associated with this logId and insert new ones
-        const index = photoStore.index('logId');
-        const request = index.openCursor(IDBKeyRange.only(Number(logId)));
-        request.onsuccess = (e) => {
-          const cursor = e.target.result;
-          if (cursor) {
-            cursor.delete();
-            cursor.continue();
-          } else {
-            // Old photos cleared. Add current list of photos.
-            for (const photo of photos) {
-              const photoData = {
-                logId: Number(logId),
-                blob: photo.blob,
-                caption: photo.caption || '',
-                timestamp: photo.timestamp || Date.now()
-              };
-              photoStore.add(photoData);
-            }
-          }
-        };
-      } else {
-        // Create new log
-        const request = logStore.add(log);
-        request.onsuccess = (e) => {
-          logId = e.target.result;
-          log.id = logId; // Attach generated ID back to log
-          
-          for (const photo of photos) {
-            const photoData = {
-              logId: Number(logId),
-              blob: photo.blob,
-              caption: photo.caption || '',
-              timestamp: photo.timestamp || Date.now()
-            };
-            photoStore.add(photoData);
-          }
-        };
-      }
-    });
-  },
-
-  async getLogs() {
-    const db = await this.init();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(['logs'], 'readonly');
-      const store = transaction.objectStore('logs');
-      const index = store.index('date');
-      const request = index.openCursor(null, 'prev'); // Sort by date descending (newest first)
-      const results = [];
+      // Save log
+      logStore.put(log);
       
+      // Clean local photos associated with this log.id and save new list
+      const index = photoStore.index('logId');
+      const request = index.openCursor(IDBKeyRange.only(log.id));
       request.onsuccess = (e) => {
         const cursor = e.target.result;
         if (cursor) {
-          results.push(cursor.value);
+          cursor.delete();
+          cursor.continue();
+        } else {
+          for (const photo of photos) {
+            photoStore.add({
+              logId: log.id,
+              blob: photo.blob,
+              caption: photo.caption || '',
+              timestamp: photo.timestamp || Date.now()
+            });
+          }
+        }
+      };
+    });
+
+    // 2. Attempt to upload to PostgreSQL Cloud Serverless endpoint
+    try {
+      await this.uploadLogToCloud(log, photos);
+      // Success! Update local log synced flag to 1
+      log.synced = 1;
+      await new Promise((resolve, reject) => {
+        const transaction = db.transaction(['logs'], 'readwrite');
+        transaction.objectStore('logs').put(log);
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = (e) => reject(e.target.error);
+      });
+      console.log(`Cloud sync success for log: ${log.id}`);
+    } catch (err) {
+      console.warn(`Saved locally, cloud sync deferred (offline): ${err.message}`);
+    }
+
+    return log.id;
+  },
+
+  // Helper function to upload an individual log to the Vercel API
+  async uploadLogToCloud(log, photos) {
+    // Map photo blobs to Base64 strings for Postgres compatibility
+    const cloudPhotos = [];
+    for (const photo of photos) {
+      const base64 = await blobToBase64(photo.blob);
+      if (base64) {
+        cloudPhotos.push({
+          photoData: base64,
+          caption: photo.caption || ''
+        });
+      }
+    }
+
+    const payload = {
+      ...log,
+      photos: cloudPhotos
+    };
+
+    const response = await fetch('/api/logs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errRes = await response.json().catch(() => ({}));
+      throw new Error(errRes.error || `HTTP Status ${response.status}`);
+    }
+  },
+
+  // Sync any logs that were created while offline
+  async syncUnsyncedLogs() {
+    const db = await this.init();
+    
+    // Find all unsynced logs
+    const unsyncedLogs = await new Promise((resolve) => {
+      const transaction = db.transaction(['logs'], 'readonly');
+      const store = transaction.objectStore('logs');
+      const request = store.openCursor();
+      const results = [];
+      request.onsuccess = (e) => {
+        const cursor = e.target.result;
+        if (cursor) {
+          if (cursor.value.synced === 0) {
+            results.push(cursor.value);
+          }
           cursor.continue();
         } else {
           resolve(results);
         }
       };
-      
-      request.onerror = (e) => {
-        reject(e.target.error);
-      };
     });
+
+    if (unsyncedLogs.length === 0) return 0;
+    
+    console.log(`Found ${unsyncedLogs.length} unsynced logs. Syncing to AWS RDS...`);
+    let syncCount = 0;
+
+    for (const log of unsyncedLogs) {
+      try {
+        // Fetch photos from local store
+        const photos = await new Promise((resolve) => {
+          const transaction = db.transaction(['photos'], 'readonly');
+          const photoStore = transaction.objectStore('photos');
+          const index = photoStore.index('logId');
+          const request = index.openCursor(IDBKeyRange.only(log.id));
+          const results = [];
+          request.onsuccess = (e) => {
+            const cursor = e.target.result;
+            if (cursor) {
+              results.push(cursor.value);
+              cursor.continue();
+            } else {
+              resolve(results);
+            }
+          };
+        });
+
+        // Sync to cloud
+        await this.uploadLogToCloud(log, photos);
+        
+        // Mark as synced locally
+        log.synced = 1;
+        await new Promise((resolve) => {
+          const transaction = db.transaction(['logs'], 'readwrite');
+          transaction.objectStore('logs').put(log);
+          transaction.oncomplete = () => resolve();
+        });
+        
+        syncCount++;
+      } catch (err) {
+        console.error(`Failed to sync log ${log.id}:`, err);
+        break; // Stop syncing remainder if we encounter a connection error
+      }
+    }
+    
+    return syncCount;
+  },
+
+  // Fetch from RDS, then populate local IndexedDB cache for offline reliability
+  async getLogs() {
+    const db = await this.init();
+    
+    try {
+      const response = await fetch('/api/logs');
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      
+      const cloudLogs = await response.json();
+      
+      // Save fetched cloud data to IndexedDB cache
+      const transaction = db.transaction(['logs', 'photos'], 'readwrite');
+      const logStore = transaction.objectStore('logs');
+      const photoStore = transaction.objectStore('photos');
+      
+      // Clear current cache first
+      logStore.clear();
+      photoStore.clear();
+      
+      for (const log of cloudLogs) {
+        // Mark as synced
+        log.synced = 1;
+        logStore.put(log);
+        
+        // Extract and save photos back to local IndexedDB (reverting Base64 to Blob)
+        if (log.photos && Array.isArray(log.photos)) {
+          for (const photo of log.photos) {
+            const blob = base64ToBlob(photo.photoData);
+            if (blob) {
+              photoStore.add({
+                logId: log.id,
+                blob: blob,
+                caption: photo.caption || '',
+                timestamp: Date.now()
+              });
+            }
+          }
+        }
+      }
+      
+      return cloudLogs;
+    } catch (err) {
+      console.warn(`Could not connect to database cloud API. Falling back to local offline cache: ${err.message}`);
+      
+      // Fallback: Read sorted list from IndexedDB
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(['logs'], 'readonly');
+        const store = transaction.objectStore('logs');
+        const index = store.index('date');
+        const request = index.openCursor(null, 'prev');
+        const results = [];
+        
+        request.onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (cursor) {
+            results.push(cursor.value);
+            cursor.continue();
+          } else {
+            resolve(results);
+          }
+        };
+        
+        request.onerror = (e) => reject(e.target.error);
+      });
+    }
   },
 
   async getLog(id) {
@@ -143,7 +323,7 @@ const dbService = {
       const logStore = transaction.objectStore('logs');
       const photoStore = transaction.objectStore('photos');
       
-      const logRequest = logStore.get(Number(id));
+      const logRequest = logStore.get(id); // Alphanumeric string ID search
       
       logRequest.onerror = (e) => reject(e.target.error);
       logRequest.onsuccess = (e) => {
@@ -156,7 +336,7 @@ const dbService = {
         // Fetch photos
         const photos = [];
         const index = photoStore.index('logId');
-        const photoRequest = index.openCursor(IDBKeyRange.only(Number(id)));
+        const photoRequest = index.openCursor(IDBKeyRange.only(id));
         
         photoRequest.onsuccess = (event) => {
           const cursor = event.target.result;
@@ -175,20 +355,20 @@ const dbService = {
 
   async deleteLog(id) {
     const db = await this.init();
-    return new Promise((resolve, reject) => {
+    
+    // 1. Delete locally from IndexedDB
+    await new Promise((resolve, reject) => {
       const transaction = db.transaction(['logs', 'photos'], 'readwrite');
-      
       transaction.onerror = (e) => reject(e.target.error);
       transaction.oncomplete = () => resolve();
       
       const logStore = transaction.objectStore('logs');
       const photoStore = transaction.objectStore('photos');
       
-      logStore.delete(Number(id));
+      logStore.delete(id);
       
-      // Delete all related photos
       const index = photoStore.index('logId');
-      const request = index.openCursor(IDBKeyRange.only(Number(id)));
+      const request = index.openCursor(IDBKeyRange.only(id));
       request.onsuccess = (e) => {
         const cursor = e.target.result;
         if (cursor) {
@@ -197,8 +377,20 @@ const dbService = {
         }
       };
     });
+
+    // 2. Delete from PostgreSQL RDS via Vercel Serverless API
+    try {
+      const response = await fetch(`/api/logs?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      console.log(`Cloud delete successful for log: ${id}`);
+    } catch (err) {
+      console.warn(`Local deletion successful, but failed to sync deletion to cloud (offline): ${err.message}`);
+    }
   },
 
+  // Local JSON Backup / Restore exports
   async getBackupData() {
     const db = await this.init();
     return new Promise((resolve, reject) => {
@@ -237,25 +429,21 @@ const dbService = {
     const db = await this.init();
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(['logs', 'photos'], 'readwrite');
-      
       transaction.onerror = (e) => reject(e.target.error);
       transaction.oncomplete = () => resolve();
       
       const logStore = transaction.objectStore('logs');
       const photoStore = transaction.objectStore('photos');
       
-      // Clear database tables first
       logStore.clear();
       photoStore.clear();
       
-      // Restore logs
       if (backupData.logs && Array.isArray(backupData.logs)) {
         for (const log of backupData.logs) {
           logStore.put(log);
         }
       }
       
-      // Restore photos
       if (backupData.photos && Array.isArray(backupData.photos)) {
         for (const photo of backupData.photos) {
           photoStore.put(photo);

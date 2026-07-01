@@ -106,6 +106,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Load last entered supervisor name or default to Zahir
   const lastSupervisor = localStorage.getItem('lastSupervisor');
   document.getElementById('form-supervisor').value = lastSupervisor || 'Zahir';
+
+  // Startup background sync if online
+  if (navigator.onLine) {
+    window.dbService.syncUnsyncedLogs().then(count => {
+      if (count > 0) {
+        showToast(`Synced ${count} offline logs to AWS RDS!`);
+        loadLogsAndRefresh();
+      }
+    }).catch(err => console.error('Startup sync failed:', err));
+  }
 });
 
 // Toast Notification Helper
@@ -129,6 +139,15 @@ function setupConnectionStatus() {
     if (navigator.onLine) {
       badge.className = 'connection-badge online';
       badgeText.textContent = 'Online';
+      
+      // Auto-trigger sync in the background when going online
+      window.dbService.syncUnsyncedLogs().then(count => {
+        if (count > 0) {
+          showToast(`Successfully synced ${count} pending logs to RDS!`);
+          loadLogsAndRefresh();
+        }
+      }).catch(err => console.error('Background sync failed:', err));
+      
     } else {
       badge.className = 'connection-badge offline';
       badgeText.textContent = 'Offline (Saved Local)';
@@ -900,7 +919,7 @@ async function handleFormSubmit(e) {
   };
 
   if (idVal) {
-    logObj.id = Number(idVal);
+    logObj.id = idVal;
   }
 
   try {
@@ -1225,7 +1244,7 @@ function setupUtilityActions() {
           for (const p of backupData.photos) {
             const blob = base64ToBlob(p.base64, 'image/jpeg');
             restoreData.photos.push({
-              logId: Number(p.logId),
+              logId: p.logId,
               blob: blob,
               caption: p.caption || '',
               timestamp: p.timestamp || Date.now()

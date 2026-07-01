@@ -1,0 +1,8 @@
+{
+  "name": "ops-work-tracker",
+  "version": "1.3.0",
+  "private": true,
+  "dependencies": {
+    "pg": "^8.11.3"
+  }
+}
